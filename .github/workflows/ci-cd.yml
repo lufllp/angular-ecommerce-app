@@ -84,24 +84,11 @@ jobs:
           script_stop: true
           script: |
             set -euo pipefail
+            export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
-            # Definindo variáveis explicitamente no host remoto
-            NAMESPACE=app-demo
-            FRONT_DEPLOYMENT=frontend
-            FRONT_CONTAINER=web
-            BACK_DEPLOYMENT=backend
-            BACK_CONTAINER=app
-            FRONT_IMAGE=lufllp/frontend:avaliacao
-            BACK_IMAGE=lufllp/backend:avaliacao
+            echo ">> Reiniciando FRONTEND"
+            sudo kubectl -n $NAMESPACE rollout restart deployment/$FRONT_DEPLOYMENT
 
-            echo ">> Atualizando FRONTEND"
-            sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml \
-            kubectl -n $NAMESPACE set image deployment/$FRONT_DEPLOYMENT $FRONT_CONTAINER=$FRONT_IMAGE --record
-            sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml \
-            kubectl -n $NAMESPACE rollout status deployment/$FRONT_DEPLOYMENT
-
-            echo ">> Atualizando BACKEND"
-            sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml \
-            kubectl -n $NAMESPACE set image deployment/$BACK_DEPLOYMENT $BACK_CONTAINER=$BACK_IMAGE --record
-            sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml \
-            kubectl -n $NAMESPACE rollout status deployment/$BACK_DEPLOYMENT
+            echo ">> Reiniciando BACKEND"
+            sudo kubectl -n $NAMESPACE rollout restart deployment/$BACK_DEPLOYMENT
+  
