@@ -7,11 +7,10 @@ on:
 
 env:
   REGISTRY: docker.io
+  NAMESPACE: app-demo
 
   FRONT_DEPLOYMENT: frontend
-  FRONT_CONTAINER: frontend
   BACK_DEPLOYMENT: backend
-  BACK_CONTAINER: backend
 
   FRONT_IMAGE: lufllp/frontend:avaliacao
   BACK_IMAGE: lufllp/backend:avaliacao
@@ -40,6 +39,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # Build & Push Frontend
       - name: Build & Push Frontend
         uses: docker/build-push-action@v6
         with:
@@ -48,6 +48,7 @@ jobs:
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.FRONT_IMAGE }}
 
+      # Build & Push Backend
       - name: Build & Push Backend
         uses: docker/build-push-action@v6
         with:
@@ -67,7 +68,7 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.REMOTE_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Rollout frontend & backend
+      - name: Pull latest images & Rollout
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.REMOTE_HOST }}
@@ -77,15 +78,17 @@ jobs:
           script_stop: true
           script: |
             set -euo pipefail
-            export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-            alias kubectl='sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl'
 
             NAMESPACE=app-demo
+            FRONT_DEPLOYMENT=frontend
+            BACK_DEPLOYMENT=backend
+            FRONT_IMAGE=docker.io/lufllp/frontend:avaliacao
+            BACK_IMAGE=docker.io/lufllp/backend:avaliacao
 
-            echo ">> Rolling out FRONTEND"
-            kubectl -n ${NAMESPACE} set image deployment/${FRONT_DEPLOYMENT} ${FRONT_CONTAINER}=${{ env.REGISTRY }}/${{ env.FRONT_IMAGE }}
-            kubectl -n ${NAMESPACE} rollout status deployment/${FRONT_DEPLOYMENT} --timeout=300s
+            echo ">> Atualizando FRONTEND para a nova imagem"
+            sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl -n ${NAMESPACE} set image deployment/${FRONT_DEPLOYMENT} ${FRONT_DEPLOYMENT}=${FRONT_IMAGE} --record
+            sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl -n ${NAMESPACE} rollout status deployment/${FRONT_DEPLOYMENT} --timeout=300s
 
             echo ">> Atualizando BACKEND para a nova imagem"
-            kubectl -n ${NAMESPACE} set image deployment/${BACK_DEPLOYMENT} ${BACK_CONTAINER}=${{ env.REGISTRY }}/${{ env.BACK_IMAGE }}
-            kubectl -n ${NAMESPACE} rollout status deployment/${BACK_DEPLOYMENT} --timeout=300s
+            sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl -n ${NAMESPACE} set image deployment/${BACK_DEPLOYMENT} ${BACK_DEPLOYMENT}=${BACK_IMAGE} --record
+            sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl -n ${NAMESPACE} rollout status deployment/${BACK_DEPLOYMENT} --timeout=300s
