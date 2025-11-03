@@ -10,22 +10,22 @@ env:
   NAMESPACE: app-demo
 
   FRONT_DEPLOYMENT: frontend
-  FRONT_CONTAINER: web        # nome do container do frontend
+  FRONT_CONTAINER: app
   BACK_DEPLOYMENT: backend
-  BACK_CONTAINER: app         # nome do container do backend
+  BACK_CONTAINER: app
 
   FRONT_IMAGE: lufllp/frontend:avaliacao
   BACK_IMAGE: lufllp/backend:avaliacao
 
 jobs:
   build-and-push:
-    name: Build & Push Images
+    name: Build & Push (frontend + backend)
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up QEMU
@@ -41,36 +41,40 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Build & Push Frontend
+      # ---------- FRONTEND ----------
       - name: Build & Push Frontend
         uses: docker/build-push-action@v6
         with:
           context: ./client
           file: ./client/Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.FRONT_IMAGE }}
+          tags: ${{ env.FRONT_IMAGE }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
 
-      # Build & Push Backend
+      # ---------- BACKEND ----------
       - name: Build & Push Backend
         uses: docker/build-push-action@v6
         with:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.BACK_IMAGE }}
+          tags: ${{ env.BACK_IMAGE }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
 
   deploy:
-    name: Rollout via SSH
+    name: Rollout via SSH on EC2
     needs: build-and-push
     runs-on: ubuntu-latest
 
     steps:
-      - name: Add remote host key
+      - name: Add EC2 host key
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.REMOTE_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Rollout frontend & backend
+      - name: Rollout with SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.REMOTE_HOST }}
@@ -81,14 +85,23 @@ jobs:
           script: |
             set -euo pipefail
 
-            # Atualiza Frontend
-            sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml \
-            kubectl -n ${NAMESPACE} set image deployment/${FRONT_DEPLOYMENT} ${FRONT_CONTAINER}=${FRONT_IMAGE} --record
-            sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml \
-            kubectl -n ${NAMESPACE} rollout status deployment/${FRONT_DEPLOYMENT}
+            # Definindo variáveis explicitamente no host remoto
+            NAMESPACE=app-demo
+            FRONT_DEPLOYMENT=frontend
+            FRONT_CONTAINER=app
+            BACK_DEPLOYMENT=backend
+            BACK_CONTAINER=app
+            FRONT_IMAGE=lufllp/frontend:avaliacao
+            BACK_IMAGE=lufllp/backend:avaliacao
 
-            # Atualiza Backend
+            echo ">> Atualizando FRONTEND"
             sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml \
-            kubectl -n ${NAMESPACE} set image deployment/${BACK_DEPLOYMENT} ${BACK_CONTAINER}=${BACK_IMAGE} --record
+            kubectl -n $NAMESPACE set image deployment/$FRONT_DEPLOYMENT $FRONT_CONTAINER=$FRONT_IMAGE --record
             sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml \
-            kubectl -n ${NAMESPACE} rollout status deployment/${BACK_DEPLOYMENT}
+            kubectl -n $NAMESPACE rollout status deployment/$FRONT_DEPLOYMENT
+
+            echo ">> Atualizando BACKEND"
+            sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml \
+            kubectl -n $NAMESPACE set image deployment/$BACK_DEPLOYMENT $BACK_CONTAINER=$BACK_IMAGE --record
+            sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml \
+            kubectl -n $NAMESPACE rollout status deployment/$BACK_DEPLOYMENT
