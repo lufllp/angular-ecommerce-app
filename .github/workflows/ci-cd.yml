@@ -88,7 +88,7 @@ jobs:
             # Definindo variáveis explicitamente no host remoto
             NAMESPACE=app-demo
             FRONT_DEPLOYMENT=frontend
-            FRONT_CONTAINER=app
+            FRONT_CONTAINER=web
             BACK_DEPLOYMENT=backend
             BACK_CONTAINER=app
             FRONT_IMAGE=lufllp/frontend:avaliacao
