@@ -80,13 +80,17 @@ jobs:
           script_stop: true
           script: |
             set -euo pipefail
-
+            
             NAMESPACE=app-demo
             FRONT_DEPLOYMENT=frontend
             BACK_DEPLOYMENT=backend
-
-            echo ">> Rolling out FRONTEND"
-            sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl -n ${NAMESPACE} rollout restart deployment/${FRONT_DEPLOYMENT}
-
-            echo ">> Rolling out BACKEND"
-            sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl -n ${NAMESPACE} rollout restart deployment/${BACK_DEPLOYMENT}
+            FRONT_IMAGE=docker.io/lufllp/frontend:avaliacao
+            BACK_IMAGE=docker.io/lufllp/backend:avaliacao
+            
+            echo ">> Atualizando FRONTEND para a nova imagem"
+            sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl -n ${NAMESPACE} set image deployment/${FRONT_DEPLOYMENT} frontend=${FRONT_IMAGE} --record
+            sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl -n ${NAMESPACE} rollout status deployment/${FRONT_DEPLOYMENT} --timeout=300s
+            
+            echo ">> Atualizando BACKEND para a nova imagem"
+            sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl -n ${NAMESPACE} set image deployment/${BACK_DEPLOYMENT} backend=${BACK_IMAGE} --record
+            sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl -n ${NAMESPACE} rollout status deployment/${BACK_DEPLOYMENT} --timeout=300s
