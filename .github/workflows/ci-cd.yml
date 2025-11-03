@@ -87,8 +87,8 @@ jobs:
             export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
             echo ">> Reiniciando FRONTEND"
-            sudo kubectl -n $NAMESPACE rollout restart deployment/$FRONT_DEPLOYMENT
+            sudo kubectl -n app-demo rollout restart deployment/frontend
 
             echo ">> Reiniciando BACKEND"
-            sudo kubectl -n $NAMESPACE rollout restart deployment/$BACK_DEPLOYMENT
+            sudo kubectl -n app-demo rollout restart deployment/backend
   
