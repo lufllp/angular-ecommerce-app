@@ -9,11 +9,13 @@ env:
   REGISTRY: docker.io
   NAMESPACE: app-demo
 
+  # Deployments e containers
   FRONT_DEPLOYMENT: frontend
-  FRONT_CONTAINER: frontend
+  FRONT_CONTAINER: web
   BACK_DEPLOYMENT: backend
   BACK_CONTAINER: backend
 
+  # Imagens Docker
   FRONT_IMAGE: lufllp/frontend:avaliacao
   BACK_IMAGE: lufllp/backend:avaliacao
 
@@ -83,14 +85,16 @@ jobs:
             
             NAMESPACE=app-demo
             FRONT_DEPLOYMENT=frontend
+            FRONT_CONTAINER=web
             BACK_DEPLOYMENT=backend
+            BACK_CONTAINER=backend
             FRONT_IMAGE=docker.io/lufllp/frontend:avaliacao
             BACK_IMAGE=docker.io/lufllp/backend:avaliacao
             
             echo ">> Atualizando FRONTEND para a nova imagem"
-            sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl -n ${NAMESPACE} set image deployment/${FRONT_DEPLOYMENT} frontend=${FRONT_IMAGE} --record
+            sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl -n ${NAMESPACE} set image deployment/${FRONT_DEPLOYMENT} ${FRONT_CONTAINER}=${FRONT_IMAGE} --record
             sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl -n ${NAMESPACE} rollout status deployment/${FRONT_DEPLOYMENT} --timeout=300s
             
             echo ">> Atualizando BACKEND para a nova imagem"
-            sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl -n ${NAMESPACE} set image deployment/${BACK_DEPLOYMENT} backend=${BACK_IMAGE} --record
+            sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl -n ${NAMESPACE} set image deployment/${BACK_DEPLOYMENT} ${BACK_CONTAINER}=${BACK_IMAGE} --record
             sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl -n ${NAMESPACE} rollout status deployment/${BACK_DEPLOYMENT} --timeout=300s
