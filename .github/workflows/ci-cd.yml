@@ -9,11 +9,11 @@ env:
   REGISTRY: docker.io
   NAMESPACE: app-demo
 
-  # Deployments e containers
+  # Nomes dos deployments e containers corretos
   FRONT_DEPLOYMENT: frontend
-  FRONT_CONTAINER: web
+  FRONT_CONTAINER: web       # nome exato do container no deployment frontend
   BACK_DEPLOYMENT: backend
-  BACK_CONTAINER: backend
+  BACK_CONTAINER: app        # nome exato do container no deployment backend
 
   # Imagens Docker
   FRONT_IMAGE: lufllp/frontend:avaliacao
@@ -82,19 +82,17 @@ jobs:
           script_stop: true
           script: |
             set -euo pipefail
-            
-            NAMESPACE=app-demo
-            FRONT_DEPLOYMENT=frontend
-            FRONT_CONTAINER=web
-            BACK_DEPLOYMENT=backend
-            BACK_CONTAINER=backend
-            FRONT_IMAGE=docker.io/lufllp/frontend:avaliacao
-            BACK_IMAGE=docker.io/lufllp/backend:avaliacao
-            
+            export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+            alias kubectl='sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl'
+
             echo ">> Atualizando FRONTEND para a nova imagem"
-            sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl -n ${NAMESPACE} set image deployment/${FRONT_DEPLOYMENT} ${FRONT_CONTAINER}=${FRONT_IMAGE} --record
-            sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl -n ${NAMESPACE} rollout status deployment/${FRONT_DEPLOYMENT} --timeout=300s
-            
+            kubectl -n ${NAMESPACE} set image deployment/${FRONT_DEPLOYMENT} ${FRONT_CONTAINER}=${{ env.REGISTRY }}/${{ env.FRONT_IMAGE }}
+
             echo ">> Atualizando BACKEND para a nova imagem"
-            sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl -n ${NAMESPACE} set image deployment/${BACK_DEPLOYMENT} ${BACK_CONTAINER}=${BACK_IMAGE} --record
-            sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl -n ${NAMESPACE} rollout status deployment/${BACK_DEPLOYMENT} --timeout=300s
+            kubectl -n ${NAMESPACE} set image deployment/${BACK_DEPLOYMENT} ${BACK_CONTAINER}=${{ env.REGISTRY }}/${{ env.BACK_IMAGE }}
+
+            echo ">> Aguardando rollout do FRONTEND"
+            kubectl -n ${NAMESPACE} rollout status deployment/${FRONT_DEPLOYMENT}
+
+            echo ">> Aguardando rollout do BACKEND"
+            kubectl -n ${NAMESPACE} rollout status deployment/${BACK_DEPLOYMENT}
