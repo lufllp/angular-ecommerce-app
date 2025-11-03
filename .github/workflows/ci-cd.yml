@@ -7,21 +7,18 @@ on:
 
 env:
   REGISTRY: docker.io
-  NAMESPACE: app-demo
 
-  # Nomes dos deployments e containers corretos
   FRONT_DEPLOYMENT: frontend
-  FRONT_CONTAINER: web       # nome exato do container no deployment frontend
+  FRONT_CONTAINER: frontend
   BACK_DEPLOYMENT: backend
-  BACK_CONTAINER: app        # nome exato do container no deployment backend
+  BACK_CONTAINER: backend
 
-  # Imagens Docker
   FRONT_IMAGE: lufllp/frontend:avaliacao
   BACK_IMAGE: lufllp/backend:avaliacao
 
 jobs:
   build-and-push:
-    name: Build & Push Images
+    name: Build & Push Docker Images
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -43,7 +40,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Build & Push Frontend
       - name: Build & Push Frontend
         uses: docker/build-push-action@v6
         with:
@@ -52,7 +48,6 @@ jobs:
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.FRONT_IMAGE }}
 
-      # Build & Push Backend
       - name: Build & Push Backend
         uses: docker/build-push-action@v6
         with:
@@ -85,14 +80,12 @@ jobs:
             export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
             alias kubectl='sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl'
 
-            echo ">> Atualizando FRONTEND para a nova imagem"
+            NAMESPACE=app-demo
+
+            echo ">> Rolling out FRONTEND"
             kubectl -n ${NAMESPACE} set image deployment/${FRONT_DEPLOYMENT} ${FRONT_CONTAINER}=${{ env.REGISTRY }}/${{ env.FRONT_IMAGE }}
+            kubectl -n ${NAMESPACE} rollout status deployment/${FRONT_DEPLOYMENT} --timeout=300s
 
             echo ">> Atualizando BACKEND para a nova imagem"
             kubectl -n ${NAMESPACE} set image deployment/${BACK_DEPLOYMENT} ${BACK_CONTAINER}=${{ env.REGISTRY }}/${{ env.BACK_IMAGE }}
-
-            echo ">> Aguardando rollout do FRONTEND"
-            kubectl -n ${NAMESPACE} rollout status deployment/${FRONT_DEPLOYMENT}
-
-            echo ">> Aguardando rollout do BACKEND"
-            kubectl -n ${NAMESPACE} rollout status deployment/${BACK_DEPLOYMENT}
+            kubectl -n ${NAMESPACE} rollout status deployment/${BACK_DEPLOYMENT} --timeout=300s
