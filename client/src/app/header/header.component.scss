@@ -21,7 +21,7 @@
   &__right {
     position: relative;
     .cart-counter {
-      color: #fff;
+      color: #96e1ff;
       background-color: red;
       width: 17px;
       height: 17px;
@@ -48,7 +48,7 @@
 .cart-dropdown {
   max-width: 280px;
   min-width: 280px;
-  background-color: #fff;
+  background-color: #96e1ff;
   border: 1px solid #ccc;
   &__empty {
     padding: 12px;
@@ -148,7 +148,7 @@
   top: 0px;
   padding: 56px 0px 24px;
   transform: translateX(-285px);
-  background-color: #fff;
+  background-color: #96e1ff;
   border-right: 1px solid #ccc;
   transition: all 0.35s ease;
   z-index: 10002;
