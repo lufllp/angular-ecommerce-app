@@ -12,12 +12,28 @@
   }
   &__left {
   }
-  &__middle {
+  &  &__middle {
     flex-grow: 1;
     text-align: center;
     > h3 {
+      font-weight: bold;
+      font-size: 1.8rem;
+      background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+      background-size: 300% 300%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      color: transparent;
+      animation: gradientShift 5s ease infinite;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+      
+      &:hover {
+        transform: scale(1.05);
+      }
     }
   }
+
   &__right {
     position: relative;
     .cart-counter {
@@ -225,4 +241,16 @@
 .darken-background.enable {
   background-color: rgba(0, 0, 0, 0.5);
   pointer-events: auto;
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
